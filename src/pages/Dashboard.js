@@ -10,6 +10,8 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   const fetchTasks = async () => {
+    const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
     try {
       const res = await axios.get('http://localhost:5000/api/tasks', {
         headers: { Authorization: `Bearer ${token}` }
@@ -27,7 +29,7 @@ const Dashboard = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to drop this task?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/tasks/${id}`, {
+        await axios.delete(`${API_BASE_URL}/api/tasks/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         fetchTasks();
