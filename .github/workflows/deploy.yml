@@ -49,7 +49,7 @@ jobs:
       - name: Compile React Production Assets
         env:
           # Injects the backend API IP dynamically into React during optimization build
-          REACT_APP_API_URL: http://${{ secrets.BACKEND_IP }}:5000
+          REACT_APP_API_URL: ${{ secrets.BACKEND_IP }}
         run: npm run build
 
       - name: Configure AWS Credentials
