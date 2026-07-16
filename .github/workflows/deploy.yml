@@ -1,0 +1,65 @@
+name: Frontend CI/CD - Build & Deploy to AWS S3
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+
+jobs:
+  validate-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Runtime Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Application Dependencies
+        run: npm ci || npm install
+
+      - name: Lint Verification Run
+        run: npm run lint --if-present
+
+      - name: Execute Test Suite
+        run: npm test --if-present
+
+  build-and-deploy-s3:
+    needs: validate-and-test
+    # Only deploy to S3 if the code is pushed or merged into main
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Runtime Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Application Dependencies
+        run: npm ci || npm install
+
+      - name: Compile React Production Assets
+        env:
+          # Injects the backend API IP dynamically into React during optimization build
+          REACT_APP_API_URL: ${{ secrets.BACKEND_IP }}
+        run: npm run build
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Sync Build Assets to AWS S3
+        run: |
+          # Syncs the compiled 'build' folder to S3 and removes deleted files automatically
+          aws s3 sync build/ s3://${{ secrets.AWS_S3_BUCKET_NAME }} --delete
